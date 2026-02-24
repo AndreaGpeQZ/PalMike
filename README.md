@@ -1,108 +1,170 @@
-# PWA Test – Despliegue en IONOS con Docker
+# PWA TEST IONOS - Investigación, Implementación y Despliegue
 
-## Materia
-Desarrollo Web Profesional
-
-## Institución
-Universidad Tecnológica de Tijuana
-
-## Docente
-Mike Cardona (@mikecardona076)
+## Datos académicos
+- **Materia:** Desarrollo Web Profesional
+- **Institución:** Universidad Tecnológica de Tijuana
+- **Docente:** Mike Cardona (@mikecardona076)
 
 ## Objetivo
-Comprender la arquitectura técnica de una Progressive Web App (PWA) y desplegarla en un servidor IONOS utilizando Docker, Nginx y certificados SSL, garantizando que la aplicación sea instalable, segura y funcional sin conexión.
+Comprender la arquitectura de una PWA y desplegar una aplicación funcional en IONOS usando Docker + Nginx con HTTPS válido para cumplir instalabilidad y soporte offline.
 
----
+## Parte 1: Investigación teórica
 
-## Web App Manifest (manifest.json)
+### 1) Web App Manifest (`manifest.json`)
+El manifiesto define cómo el navegador “instala” y representa la web app como si fuera una app nativa.
 
-El Web App Manifest es un archivo JSON que permite al navegador interpretar cómo debe comportarse la aplicación cuando se instala en un dispositivo.
+- **`theme_color`:** color del UI del navegador/sistema (barra superior, color de interfaz del entorno instalado).
+- **`background_color`:** color de arranque (splash) mientras la app inicia antes de renderizar.
+- **`display`:**
+  - `browser`: se abre como pestaña web tradicional.
+  - `standalone`: se abre sin barra del navegador, experiencia tipo app instalada.
+- **`icons`:** arreglo con íconos en tamaños múltiples (`192x192`, `512x512`). Es clave para instalación en Android/desktop y para cumplir auditorías de Lighthouse.
 
-### Propiedades clave:
+### 2) Service Workers
+Un Service Worker (SW) es un script que corre en segundo plano y opera como **proxy de red programable** entre la aplicación y la red.
 
-- **theme_color**  
-  Define el color principal de la aplicación, utilizado en la barra superior del navegador y en la UI del sistema operativo.
+#### Registro
+Se registra desde el cliente (`src/main.tsx`) con `navigator.serviceWorker.register('/sw.js')`.
 
-- **background_color**  
-  Color que se muestra mientras la aplicación se carga al iniciar desde el ícono instalado.
+#### Ciclo de vida
+1. **Installation:** precachea recursos esenciales (app shell) para acelerar arranque y soportar offline.
+2. **Activation:** elimina cachés viejas y toma control con `clients.claim()`.
+3. **Fetching:** intercepta requests y responde con estrategia de caché/red según el tipo de recurso.
 
-- **display**
-  - `browser`: se comporta como una página web tradicional.
-  - `standalone`: elimina la barra del navegador y hace que la app se comporte como una aplicación nativa.
+#### SW como proxy
+Al interceptar `fetch`, el SW puede:
+- responder desde caché,
+- ir a red,
+- mezclar ambos enfoques (ej. `Stale-While-Revalidate`).
 
-- **icons**
-  Es un arreglo de íconos en distintos tamaños. Es obligatorio para que el navegador permita la instalación de la PWA en distintos dispositivos.
+Esto permite continuidad del servicio incluso con conectividad limitada.
 
----
+### 3) Estrategias de caching
 
-## Service Workers
+#### `Cache First`
+- **Flujo:** primero caché; si no existe, red y luego cachea.
+- **Ventaja:** máxima velocidad para assets estáticos.
+- **Riesgo:** contenido desactualizado.
 
-Un Service Worker es un script que se ejecuta en segundo plano y actúa como un intermediario (proxy de red) entre la aplicación y la red.
+#### `Network First`
+- **Flujo:** primero red; si falla, fallback a caché.
+- **Ventaja:** contenido más fresco.
+- **Riesgo:** mayor latencia y dependencia de conexión.
 
-### Registro
-El Service Worker se registra desde el archivo principal de la aplicación (`main.tsx`) y solo se ejecuta en contextos seguros (HTTPS).
+#### `Stale-While-Revalidate`
+- **Flujo:** responde inmediato con caché (si existe) y actualiza en segundo plano desde red.
+- **Ventaja:** equilibrio entre rapidez y actualización.
+- **Riesgo:** puede mostrar brevemente datos antiguos.
 
-### Ciclo de Vida
+### 4) Seguridad y TLS
 
-1. **Installation**
-   Se almacenan en caché los recursos principales de la aplicación.
+#### ¿Por qué HTTPS es requisito habilitador?
+Los SW tienen privilegios de interceptar tráfico, por lo que el navegador solo los habilita en **contexto seguro** (HTTPS o `localhost` en desarrollo). Sin TLS válido, el SW no se registra de forma confiable y la PWA pierde capacidades clave.
 
-2. **Activation**
-   El Service Worker toma control de la aplicación y limpia cachés antiguos si es necesario.
-
-3. **Fetching**
-   Intercepta todas las solicitudes de red y decide si responder desde caché o desde la red.
-
-### Proxy de Red
-El Service Worker intercepta las solicitudes HTTP y puede responder con:
-- Recursos almacenados en caché
-- Recursos obtenidos desde la red
-Esto permite el funcionamiento offline.
-
----
-
-## Estrategias de Almacenamiento (Caching)
-
-### Cache First
-Prioriza los recursos en caché. Ideal para archivos estáticos.
-- Muy rápido
-- Puede servir contenido desactualizado
-
-### Network First
-Prioriza la red y usa caché como respaldo.
-- Datos actualizados
-- No funciona bien sin conexión
-
-### Stale While Revalidate
-Entrega caché inmediatamente y actualiza en segundo plano.
-- Buen balance entre velocidad y actualización
-- Recomendado para PWAs modernas
-
----
-
-## Seguridad y TLS (HTTPS)
-
-### ¿Por qué HTTPS es obligatorio?
-Los Service Workers solo funcionan bajo HTTPS porque tienen control total sobre las solicitudes de red y podrían ser vulnerables a ataques si se ejecutaran en HTTP.
-
-### Impacto en la instalación
-Sin HTTPS:
-- No se registra el Service Worker
-- No aparece el botón de instalación
-- Lighthouse falla la auditoría PWA
+#### Impacto de certificados en Install Prompt
+Sin HTTPS válido:
+- falla criterio de instalabilidad,
+- no se activa correctamente el flujo de instalación,
+- Lighthouse marca errores en PWA/Security.
 
 Con HTTPS válido:
-- La app es instalable
-- Se habilita el modo offline
-- Se garantiza la integridad de los datos
+- la app es instalable,
+- el navegador habilita prompt/icono de instalación,
+- mejora la confianza y la integridad de sesión.
 
 ---
 
-## Tecnologías Utilizadas
-- React + Vite + TypeScript
-- Service Workers
-- Web App Manifest
-- Docker (multi-stage)
-- Nginx
-- IONOS Cloud Server
-- Certificados SSL (Let's Encrypt / IONOS)
+## Parte 2: Implementación técnica
+
+## Stack
+- React + Vite + TypeScript.
+
+## Funcionalidad implementada
+- App tipo **Notes Manager**.
+- Persistencia local con `localStorage`.
+- Alta y eliminación de notas.
+- Soporte offline vía Service Worker.
+
+## Archivos principales
+- App: `pwa/src/App.tsx`
+- Estilos: `pwa/src/App.css`, `pwa/src/index.css`
+- Registro SW: `pwa/src/main.tsx`
+- Manifest: `pwa/public/manifest.json`
+- Service Worker: `pwa/public/sw.js`
+
+---
+
+## Docker + Nginx (multi-etapa)
+
+## Archivos de despliegue
+- `pwa/Dockerfile`
+- `pwa/nginx.conf`
+
+## Estrategia de contenedor
+1. **Build stage (`node:alpine`)**
+   - instala dependencias,
+   - ejecuta build de Vite,
+   - genera `dist/`.
+2. **Production stage (`nginx:stable-alpine`)**
+   - sirve estáticos desde `/usr/share/nginx/html`,
+   - redirige `80 -> 443`,
+   - expone TLS en `443`.
+
+---
+
+## SSL en IONOS
+
+Para que la PWA sea instalable en producción, usar certificado válido:
+- **Opción A:** certificados de IONOS.
+- **Opción B:** Let's Encrypt/Certbot.
+
+En esta configuración, Nginx espera:
+- `/etc/nginx/certs/fullchain.pem`
+- `/etc/nginx/certs/privkey.pem`
+
+Montaje típico al correr Docker:
+
+```bash
+docker run -d --name pwa-notes \
+  -p 80:80 -p 443:443 \
+  -v /ruta/en/servidor/certs:/etc/nginx/certs:ro \
+  pwa-notes:latest
+```
+
+---
+
+## Ejecución local rápida
+
+Desde `pwa/`:
+
+```bash
+npm install
+npm run build
+docker build -t pwa-notes:latest .
+docker run --rm -p 8080:80 pwa-notes:latest
+```
+
+Abrir: `http://localhost:8080`
+
+---
+
+## Instrucciones de entrega
+
+1. Crear repositorio público: `pwa-ionos-nombre-apellido`.
+2. Incluir en el repo: código fuente, `Dockerfile`, `nginx.conf` y este README.
+3. Agregar colaborador obligatorio: `mikecardona076`.
+4. Desplegar en instancia IONOS con HTTPS válido.
+5. Validar con Lighthouse: instalable + offline.
+6. Enviar correo con asunto: **"PWA TEST IONOS - [Tu Nombre]"** incluyendo:
+   - URL HTTPS de la PWA funcionando.
+   - Link del repositorio GitHub.
+
+---
+
+## Criterios de evaluación (checklist)
+- **Técnico:** TypeScript y Docker correctamente usados.
+- **PWA:** navegador muestra opción de instalar app.
+- **Seguridad:** sitio con certificado SSL válido.
+- **Investigación:** documentación técnica clara y profesional.
+
+> "La implementación correcta de una PWA requiere una sinergia perfecta entre el desarrollo frontend y la configuración de infraestructura."
