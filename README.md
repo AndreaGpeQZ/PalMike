@@ -1,28 +1,108 @@
-# PalMike
+# PWA Test – Despliegue en IONOS con Docker
 
-1. Web App Manifest (manifest.json)
-El archivo de manifiesto es la pieza fundamental que permite que una web sea "instalable". Es un archivo JSON que describe la aplicación al navegador.
+## Materia
+Desarrollo Web Profesional
 
-•  Proporcionar información sobre la aplicación (nombre, autor, iconos, descripción) en un formato que el sistema operativo pueda usar para instalarla en la pantalla de inicio.
-• 
-• short_name: El nombre que aparece debajo del icono en el escritorio.
-• start_url: La página que se abre al iniciar la app (usualmente / o index.html).
-• display: Define la apariencia de la ventana. El valor standalone permite que la app se vea como una aplicación nativa, sin barras de navegación del navegador.
-• icons: Conjunto de imágenes (usualmente 192x192 y 512x512) necesarias para el splash screen y el icono de acceso directo.
+## Institución
+Universidad Tecnológica de Tijuana
 
-2. Service Worker (sw.js)
-Es un script que el navegador ejecuta en segundo plano, actuando como un servidor proxy entre la aplicación web, el navegador y la red.
+## Docente
+Mike Cardona (@mikecardona076)
 
-• 
-• No tiene acceso directo al DOM (se comunica mediante postMessage).
-• Es la base para el soporte  y las .
+## Objetivo
+Comprender la arquitectura técnica de una Progressive Web App (PWA) y desplegarla en un servidor IONOS utilizando Docker, Nginx y certificados SSL, garantizando que la aplicación sea instalable, segura y funcional sin conexión.
 
+---
 
+## Web App Manifest (manifest.json)
 
- Se inicia desde el archivo principal de JavaScript.
+El Web App Manifest es un archivo JSON que permite al navegador interpretar cómo debe comportarse la aplicación cuando se instala en un dispositivo.
 
- El momento ideal para almacenar en caché los activos estáticos (App Shell).
+### Propiedades clave:
 
- Ocurre cuando el Service Worker anterior se libera, permitiendo limpiar cachés antiguos.
+- **theme_color**  
+  Define el color principal de la aplicación, utilizado en la barra superior del navegador y en la UI del sistema operativo.
 
- Permite interceptar peticiones de red para decidir si se sirve contenido desde el caché o se busca en internet, permitiendo que la app funcione sin conexión.
+- **background_color**  
+  Color que se muestra mientras la aplicación se carga al iniciar desde el ícono instalado.
+
+- **display**
+  - `browser`: se comporta como una página web tradicional.
+  - `standalone`: elimina la barra del navegador y hace que la app se comporte como una aplicación nativa.
+
+- **icons**
+  Es un arreglo de íconos en distintos tamaños. Es obligatorio para que el navegador permita la instalación de la PWA en distintos dispositivos.
+
+---
+
+## Service Workers
+
+Un Service Worker es un script que se ejecuta en segundo plano y actúa como un intermediario (proxy de red) entre la aplicación y la red.
+
+### Registro
+El Service Worker se registra desde el archivo principal de la aplicación (`main.tsx`) y solo se ejecuta en contextos seguros (HTTPS).
+
+### Ciclo de Vida
+
+1. **Installation**
+   Se almacenan en caché los recursos principales de la aplicación.
+
+2. **Activation**
+   El Service Worker toma control de la aplicación y limpia cachés antiguos si es necesario.
+
+3. **Fetching**
+   Intercepta todas las solicitudes de red y decide si responder desde caché o desde la red.
+
+### Proxy de Red
+El Service Worker intercepta las solicitudes HTTP y puede responder con:
+- Recursos almacenados en caché
+- Recursos obtenidos desde la red
+Esto permite el funcionamiento offline.
+
+---
+
+## Estrategias de Almacenamiento (Caching)
+
+### Cache First
+Prioriza los recursos en caché. Ideal para archivos estáticos.
+- Muy rápido
+- Puede servir contenido desactualizado
+
+### Network First
+Prioriza la red y usa caché como respaldo.
+- Datos actualizados
+- No funciona bien sin conexión
+
+### Stale While Revalidate
+Entrega caché inmediatamente y actualiza en segundo plano.
+- Buen balance entre velocidad y actualización
+- Recomendado para PWAs modernas
+
+---
+
+## Seguridad y TLS (HTTPS)
+
+### ¿Por qué HTTPS es obligatorio?
+Los Service Workers solo funcionan bajo HTTPS porque tienen control total sobre las solicitudes de red y podrían ser vulnerables a ataques si se ejecutaran en HTTP.
+
+### Impacto en la instalación
+Sin HTTPS:
+- No se registra el Service Worker
+- No aparece el botón de instalación
+- Lighthouse falla la auditoría PWA
+
+Con HTTPS válido:
+- La app es instalable
+- Se habilita el modo offline
+- Se garantiza la integridad de los datos
+
+---
+
+## Tecnologías Utilizadas
+- React + Vite + TypeScript
+- Service Workers
+- Web App Manifest
+- Docker (multi-stage)
+- Nginx
+- IONOS Cloud Server
+- Certificados SSL (Let's Encrypt / IONOS)
