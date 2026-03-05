@@ -1,0 +1,83 @@
+.container {
+  width: min(720px, 92vw);
+  margin: 3rem auto;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #4b5563;
+}
+
+.note-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.note-form input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 1rem;
+}
+
+.note-form button,
+.note-item button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #ffffff;
+  background: #0d6efd;
+}
+
+.note-item button {
+  background: #dc3545;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.note-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.note-item p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  color: #6b7280;
+}
+
+@media (max-width: 560px) {
+  .note-form,
+  .note-item {
+    grid-template-columns: 1fr;
+  }
+}
